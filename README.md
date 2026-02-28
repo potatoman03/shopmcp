@@ -184,15 +184,4 @@ Indexer v2 schema + throughput controls:
 - [demo/test_plan.md](/Users/aevo/Documents/shopmcp/demo/test_plan.md)
 
 
-## Currently Indexed Stores (Snapshot: 2026-02-28 16:54:23 +08 / 2026-02-28 08:54:23 UTC)
-| Slug | Store | URL | Products | Status | Indexed At (UTC) |
-| --- | --- | --- | ---: | --- | --- |
-| `simplylifebaby` | Simplylifebaby | `https://simplylifebaby.com` | 250 | `completed` | `2026-02-28T07:48:42Z` |
-| `fashionnova` | Fashion Nova | `https://fashionnova.com` | 250 | `completed` | `2026-02-28T07:47:31Z` |
-| `glossier` | Glossier | `https://glossier.com` | 127 | `completed` | `2026-02-28T07:47:21Z` |
-| `kylie` | Kylie Cosmetics | `https://kyliecosmetics.com` | 250 | `completed` | `2026-02-28T07:46:05Z` |
-| `gymshark` | Gymshark | `https://gymshark.com` | 250 | `completed` | `2026-02-28T07:45:43Z` |
-| `rhode` | Rhode | `https://rhodeskin.com` | 86 | `completed` | `2026-02-28T07:45:41Z` |
-| `rarebeauty` | Rare Beauty | `https://rarebeauty.com` | 170 | `completed` | `2026-02-28T07:45:34Z` |
-| `prime` | PRIME | `https://drinkprime.com` | 49 | `completed` | `2026-02-28T07:45:20Z` |
-| `feastables` | Feastables | `https://feastables.com` | 46 | `completed` | `2026-02-28T07:45:12Z` |
+
