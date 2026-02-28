@@ -5,6 +5,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from fastmcp import FastMCP
 
 from db import Database
@@ -19,27 +20,64 @@ database = Database()
 embedder = QueryEmbedder()
 
 tool_invokers = register_tools(mcp, database, embedder)
+# Primary compatibility transport:
+# - streamable HTTP at /mcp/sse (accepts GET + POST used by many clients)
+mcp_streamable_app = mcp.http_app(path="/sse", transport="streamable-http")
+# Legacy SSE transport retained for older clients.
+mcp_legacy_sse_app = mcp.http_app(path="/sse", transport="sse")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    db_ready = False
-    db_error = ""
-    try:
-        await database.connect()
-        db_ready = True
-    except Exception as exc:
-        db_error = str(exc)
-    _app.state.db_ready = db_ready
-    _app.state.db_error = db_error
-    try:
-        yield
-    finally:
-        if db_ready:
-            await database.close()
+    # FastMCP streamable transport requires its own lifespan to initialize
+    # the session manager task group. Run that lifespan alongside DB setup.
+    async with mcp_streamable_app.lifespan(mcp_streamable_app):
+        db_ready = False
+        db_error = ""
+        try:
+            await database.connect()
+            db_ready = True
+        except Exception as exc:
+            db_error = str(exc)
+        _app.state.db_ready = db_ready
+        _app.state.db_error = db_error
+        try:
+            yield
+        finally:
+            if db_ready:
+                await database.close()
 
 
 app = FastAPI(title="ShopMCP MCP Server", lifespan=lifespan)
+
+
+class MCPAcceptHeaderMiddleware:
+    """Loosen Accept header handling for MCP endpoint probes.
+
+    Some MCP registries/probers send `Accept: */*` or omit `Accept` while
+    validating URL reachability. Streamable HTTP expects explicit media types.
+    """
+
+    def __init__(self, app: Any):
+        self.app = app
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") == "http" and scope.get("path") == "/mcp/sse":
+            headers = list(scope.get("headers", []))
+            accept = ""
+            for key, value in headers:
+                if key == b"accept":
+                    accept = value.decode("latin-1")
+                    break
+            if not accept or accept.strip() == "*/*":
+                rewritten = [(k, v) for k, v in headers if k != b"accept"]
+                rewritten.append((b"accept", b"application/json, text/event-stream"))
+                scope = dict(scope)
+                scope["headers"] = rewritten
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(MCPAcceptHeaderMiddleware)
 
 
 def _base_url(request: Request) -> str:
@@ -51,9 +89,9 @@ def _mcp_descriptor(request: Request) -> dict[str, Any]:
     return {
         "ok": True,
         "service": "shopmcp-mcp-core",
-        "transport": "sse",
+        "transport": "streamable-http",
         "sse_url": f"{base}/mcp/sse",
-        "messages_url": f"{base}/mcp/messages/",
+        "legacy_sse_url": f"{base}/mcp-legacy/sse",
     }
 
 
@@ -100,6 +138,15 @@ async def oauth_protected_resource(request: Request) -> dict[str, Any]:
 async def oauth_disabled() -> dict[str, Any]:
     return {
         "oauth_supported": False,
+    }
+
+
+@app.post("/register")
+async def oauth_dynamic_client_registration_disabled() -> dict[str, Any]:
+    # Compatibility endpoint for OAuth discovery probes from MCP registries.
+    return {
+        "oauth_supported": False,
+        "dynamic_client_registration": False,
     }
 
 
@@ -154,21 +201,14 @@ async def invoke_tool_base(tool: str, request: Request) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-# FastMCP SSE transport creates:
-# - GET /sse (SSE stream)
-# - POST /messages (MCP message endpoint)
-# Mounting at /mcp yields /mcp/sse and /mcp/messages.
-mcp_sse_app = mcp.http_app(path="/sse", transport="sse")
-app.mount("/mcp", mcp_sse_app)
+app.mount("/mcp", mcp_streamable_app)
+app.mount("/mcp-legacy", mcp_legacy_sse_app)
 
 
-@app.get("/sse")
-async def sse_alias() -> dict[str, Any]:
-    # Keep root-level probe path valid while steering clients to /mcp/sse.
-    return {
-        "resource": "/mcp/sse",
-        "hint": "Use /mcp/sse for SSE transport",
-    }
+@app.api_route("/sse", methods=["GET", "HEAD", "POST", "DELETE"])
+async def sse_alias() -> RedirectResponse:
+    # Some MCP clients probe /sse directly; redirect while preserving method.
+    return RedirectResponse(url="/mcp/sse", status_code=307)
 
 
 __all__ = ["app", "mcp", "database", "embedder", "tool_invokers"]

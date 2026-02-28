@@ -2,6 +2,43 @@
 
 Sitemap-first catalog indexing + store-scoped MCP tools for agent shopping.
 
+## Full Flow Example (What ShopMCP Does)
+This is the full path from a store URL to a checkout link generated through MCP tools:
+
+1. Merchant URL is submitted (frontend -> indexer):
+```sh
+curl -sS -X POST http://localhost:3001/index \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://www.allbirds.com","store_name":"Allbirds"}'
+```
+
+2. Indexer crawls and normalizes products into Postgres + pgvector (`stores`, `products`, `crawl_runs`, `crawl_urls`).
+
+3. Status is polled until indexing is complete:
+```sh
+curl -sS "http://localhost:3001/status/allbirds?include_products=true&products_limit=3"
+```
+
+4. Agent calls MCP search tool against that indexed catalog:
+```sh
+curl -sS -X POST http://localhost:8000/mcp/allbirds/tool/search_products_v2 \
+  -H 'Content-Type: application/json' \
+  -d '{"arguments":{"query":"lightweight running shoes","limit":5,"available_only":true}}'
+```
+
+5. Agent adds an item to basket, then creates checkout intent:
+```sh
+curl -sS -X POST http://localhost:8000/mcp/allbirds/tool/add_to_basket \
+  -H 'Content-Type: application/json' \
+  -d '{"arguments":{"handle":"tree-runner-go","quantity":1,"options":{"Size":"10","Color":"Natural Black"}}}'
+
+curl -sS -X POST http://localhost:8000/mcp/allbirds/tool/create_checkout_intent \
+  -H 'Content-Type: application/json' \
+  -d '{"arguments":{"basket_id":"<basket_id_from_previous_step>","mark_checked_out":false}}'
+```
+
+Result: ShopMCP turns raw ecommerce sites into structured, queryable store catalogs and checkout-ready workflows for agents.
+
 ## Architecture
 - `indexer/` (Node + TypeScript, port `3001`): crawl, normalize, embed, and upsert products.
 - `mcp-server/` (FastAPI + FastMCP, port `8000`): serves MCP SSE endpoint and tool invocation.
@@ -150,3 +187,16 @@ Recommended demo stores (validated 2026-02-28):
 - `https://www.allbirds.com`
 - `https://namimatcha.com`
 - backup: `https://www.tentree.com`
+
+## Currently Indexed Stores (Snapshot: 2026-02-28 16:54:23 +08 / 2026-02-28 08:54:23 UTC)
+| Slug | Store | URL | Products | Status | Indexed At (UTC) |
+| --- | --- | --- | ---: | --- | --- |
+| `simplylifebaby` | Simplylifebaby | `https://simplylifebaby.com` | 250 | `completed` | `2026-02-28T07:48:42Z` |
+| `fashionnova` | Fashion Nova | `https://fashionnova.com` | 250 | `completed` | `2026-02-28T07:47:31Z` |
+| `glossier` | Glossier | `https://glossier.com` | 127 | `completed` | `2026-02-28T07:47:21Z` |
+| `kylie` | Kylie Cosmetics | `https://kyliecosmetics.com` | 250 | `completed` | `2026-02-28T07:46:05Z` |
+| `gymshark` | Gymshark | `https://gymshark.com` | 250 | `completed` | `2026-02-28T07:45:43Z` |
+| `rhode` | Rhode | `https://rhodeskin.com` | 86 | `completed` | `2026-02-28T07:45:41Z` |
+| `rarebeauty` | Rare Beauty | `https://rarebeauty.com` | 170 | `completed` | `2026-02-28T07:45:34Z` |
+| `prime` | PRIME | `https://drinkprime.com` | 49 | `completed` | `2026-02-28T07:45:20Z` |
+| `feastables` | Feastables | `https://feastables.com` | 46 | `completed` | `2026-02-28T07:45:12Z` |
