@@ -1,0 +1,43 @@
+# Node
+node_modules/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+/dist/
+dist/
+/.next/
+.next_stale_*/
+coverage/
+out/
+*.tsbuildinfo
+.cache/
+.turbo/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Local app config
+.claude/
+.mcp.json
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store

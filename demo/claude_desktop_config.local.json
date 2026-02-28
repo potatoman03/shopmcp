@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "shopmcp-local": {
+      "transport": "sse",
+      "url": "http://localhost:8000/mcp/sse"
+    }
+  }
+}
