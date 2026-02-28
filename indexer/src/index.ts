@@ -13,7 +13,11 @@ app.use(express.json({ limit: "1mb" }));
 const logger = new Logger("indexer.server", config.LOG_LEVEL);
 
 const database = new Database(config.DATABASE_URL);
-const embeddings = new EmbeddingService(config.OPENAI_API_KEY, config.OPENAI_EMBED_MODEL);
+const embeddings = new EmbeddingService(config.OPENAI_API_KEY, config.OPENAI_EMBED_MODEL, {
+  enabled: config.SUMMARY_LLM_ENABLED,
+  model: config.SUMMARY_LLM_MODEL,
+  maxChars: config.SUMMARY_LLM_MAX_CHARS
+});
 const statuses = new StatusRegistry();
 const discoveryPlugin = createDiscoveryPlugin({
   exaApiKey: config.EXA_API_KEY,
@@ -62,6 +66,11 @@ const server = app.listen(config.PORT, () => {
     shopify_no_feed_crawl_concurrency: config.SHOPIFY_NO_FEED_CRAWL_CONCURRENCY,
     embed_batch_size: config.EMBED_BATCH_SIZE,
     upsert_concurrency: config.UPSERT_CONCURRENCY,
+    upsert_batch_size: config.UPSERT_BATCH_SIZE,
+    crawl_url_upsert_batch_size: config.CRAWL_URL_UPSERT_BATCH_SIZE,
+    summary_llm: config.SUMMARY_LLM_ENABLED ? "enabled" : "disabled",
+    summary_llm_model: config.SUMMARY_LLM_MODEL,
+    summary_llm_max_chars: config.SUMMARY_LLM_MAX_CHARS,
     reader_proxy: config.READER_PROXY_ENABLED ? "enabled" : "disabled"
   });
 });

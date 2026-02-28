@@ -1,4 +1,4 @@
-import StoreOpsDashboard from "@/components/StoreOpsDashboard";
+import { redirect } from "next/navigation";
 
 interface Props {
   params: {
@@ -6,6 +6,6 @@ interface Props {
   };
 }
 
-export default function StoreDetailPage({ params }: Props): JSX.Element {
-  return <StoreOpsDashboard slug={params.slug} />;
+export default function StoreDetailPage({ params }: Props): never {
+  redirect(`/ops/${encodeURIComponent(params.slug)}`);
 }

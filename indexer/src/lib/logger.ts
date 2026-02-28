@@ -1,4 +1,4 @@
-export type LogLevel = "debug" | "info" | "warn" | "error";
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 const levelWeight: Record<LogLevel, number> = {
   debug: 10,
@@ -93,4 +93,3 @@ export class Logger {
     this.emit("error", message, metadata);
   }
 }
-

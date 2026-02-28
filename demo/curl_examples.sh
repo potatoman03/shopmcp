@@ -62,3 +62,15 @@ call_tool "get_product" '{"handle":"ceremonial-matcha"}'
 
 echo "-- check_variant_availability (replace options from get_product output)"
 call_tool "check_variant_availability" '{"handle":"ceremonial-matcha","options":{"size":"30g"}}'
+
+echo "-- add_to_basket (replace handle/options for your store)"
+call_tool "add_to_basket" '{"handle":"ceremonial-matcha","options":{"size":"30g"},"quantity":1}'
+
+echo "-- get_basket (replace basket_id from add_to_basket response)"
+call_tool "get_basket" '{"basket_id":"basket_replace_me"}'
+
+echo "-- create_checkout_intent (replace basket_id from add_to_basket response)"
+call_tool "create_checkout_intent" '{"basket_id":"basket_replace_me"}'
+
+echo "-- checkout_items (single call add-to-basket + checkout link)"
+call_tool "checkout_items" '{"items":[{"handle":"lip-glaze","variant_id":"46378215637237","quantity":1},{"handle":"ultralip","variant_id":"46255424012533","quantity":1}]}'

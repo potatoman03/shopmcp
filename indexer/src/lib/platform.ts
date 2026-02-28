@@ -8,7 +8,7 @@ const SHOPIFY_MARKERS = [
   "/products.json"
 ];
 
-export function detectPlatformByHostname(storeUrl: string): Platform {
+function detectPlatformByHostname(storeUrl: string): Platform {
   try {
     const hostname = new URL(storeUrl).hostname.toLowerCase();
     if (hostname.endsWith(".myshopify.com")) {

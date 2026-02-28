@@ -2,18 +2,6 @@ import type { CoverageMetrics } from "@/lib/types";
 
 type AnyRecord = Record<string, unknown>;
 
-export const RECENT_STORES_KEY = "shopmcp_recent_stores_v1";
-
-export const TOOL_TABS = [
-  { key: "list_categories", label: "List Categories" },
-  { key: "search_products", label: "Search Products" },
-  { key: "filter_products", label: "Filter Products" },
-  { key: "get_product", label: "Get Product" },
-  { key: "check_variant_availability", label: "Check Variant" }
-] as const;
-
-export type ToolKey = (typeof TOOL_TABS)[number]["key"];
-
 export function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -89,7 +77,7 @@ export function extractStatus(payload: unknown): string {
   return status ?? "unknown";
 }
 
-export function extractCoverage(payload: unknown): number | undefined {
+function extractCoverage(payload: unknown): number | undefined {
   const discovered = firstNumber(payload, [
     ["metrics", "discovered_urls"],
     ["discovered_urls"],
@@ -178,12 +166,4 @@ export function extractCoverageMetrics(payload: unknown): CoverageMetrics {
 export function parseSlugFromResponse(payload: unknown, fallback: string): string {
   const slug = firstString(payload, [["slug"], ["store", "slug"], ["data", "slug"]]);
   return slug ?? (slugify(fallback) || "store");
-}
-
-export function stringifyJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return "{}";
-  }
 }

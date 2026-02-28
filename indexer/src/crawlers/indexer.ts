@@ -61,6 +61,71 @@ function asString(value: unknown): string | undefined {
   return undefined;
 }
 
+function asBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  const text = asString(value)?.toLowerCase();
+  if (!text) {
+    return undefined;
+  }
+  if (["true", "1", "yes", "in stock", "instock", "available"].includes(text)) {
+    return true;
+  }
+  if (["false", "0", "no", "out of stock", "outofstock", "sold out", "soldout", "unavailable"].includes(text)) {
+    return false;
+  }
+  return undefined;
+}
+
+function dedupeStrings(values: string[]): string[] {
+  const unique = new Set<string>();
+  const ordered: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed || unique.has(trimmed)) {
+      continue;
+    }
+    unique.add(trimmed);
+    ordered.push(trimmed);
+  }
+  return ordered;
+}
+
+function parseShopifyTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return dedupeStrings(
+      value.map((entry) => asString(entry)).filter((entry): entry is string => entry !== undefined)
+    );
+  }
+
+  const text = asString(value);
+  if (!text) {
+    return [];
+  }
+  return dedupeStrings(text.split(","));
+}
+
+function toPlainText(html: string | undefined): string | undefined {
+  if (!html) {
+    return undefined;
+  }
+
+  const plain = html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plain.length > 0 ? plain : undefined;
+}
+
 function isLikelyProductUrl(url: string): boolean {
   const text = url.toLowerCase();
   return (
@@ -209,6 +274,27 @@ export class IndexerService {
     return stored ? toStoreStatus(stored) : undefined;
   }
 
+  async listStores(limit: number, offset: number): Promise<{
+    total: number;
+    stores: Array<{
+      slug: string;
+      store_name: string;
+      store_url: string;
+      platform: Platform;
+      product_count: number;
+      status: "queued" | "running" | "completed" | "failed";
+      metrics: StatusMetrics;
+      indexed_at?: string;
+      created_at?: string;
+      updated_at?: string;
+      run_started_at?: string;
+      run_finished_at?: string;
+      last_error?: string;
+    }>;
+  }> {
+    return this.db.listStores(limit, offset);
+  }
+
   async listIndexedProducts(slug: string, limit: number, offset: number): Promise<{
     status: StoreStatus | undefined;
     products: { title: string; price?: number; description?: string; url: string }[];
@@ -235,6 +321,16 @@ export class IndexerService {
       price_max?: number;
       available: boolean;
       variant_count: number;
+      variants?: Array<{
+        id?: string;
+        title?: string;
+        sku?: string;
+        price_cents?: number;
+        compare_at_cents?: number;
+        currency?: string;
+        available?: boolean;
+        options?: Record<string, string>;
+      }>;
       source: string;
       url: string;
       description?: string;
@@ -637,7 +733,8 @@ export class IndexerService {
           url_norm: url,
           source: discoveredEntries.get(url)?.source ?? "sitemap",
           is_candidate_product: discoveredEntries.get(url)?.is_candidate_product ?? false
-        }))
+        })),
+        this.config.CRAWL_URL_UPSERT_BATCH_SIZE
       );
 
       const fetchState = force ? new Map() : await this.db.getFetchState(slug, crawlTargets);
@@ -827,7 +924,12 @@ export class IndexerService {
         top_duplicate_urls: topDuplicateUrls,
         handle_id_collisions: handleIdCollisions
       });
-      const catalogProducts = indexedRecords.filter((product) => isCatalogProduct(product));
+      const catalogProducts = indexedRecords
+        .filter((product) => isCatalogProduct(product))
+        .map((product) => ({
+          ...product,
+          is_catalog_product: true
+        }));
       const nonProductRecords = indexedRecords
         .filter((product) => !isCatalogProduct(product))
         .map((product) => ({
@@ -837,24 +939,82 @@ export class IndexerService {
           url: product.url
         }));
 
-      const embeddings = await this.embedder.embedMany(
-        catalogProducts.map((product) => product.search_text),
+      const existingHashes =
+        force || catalogProducts.length === 0
+          ? new Map<string, string>()
+          : await this.db.getProductHashesByHandle(
+              slug,
+              catalogProducts.map((product) => product.handle)
+            );
+
+      const changedProducts = catalogProducts.filter(
+        (product) => force || existingHashes.get(product.handle) !== product.content_hash
+      );
+
+      const summaryStartedAt = Date.now();
+      if (this.embedder.canSummarize() && changedProducts.length > 0) {
+        await mapLimit(changedProducts, 4, async (product) => {
+          if (product.summary_llm) {
+            return;
+          }
+          const summary = await this.embedder.summarizeOneLine({
+            title: product.title,
+            productType: product.product_type,
+            description: product.description,
+            tags: product.tags
+          });
+          if (summary) {
+            product.summary_llm = summary;
+          }
+        });
+      }
+      const summaryMs = Date.now() - summaryStartedAt;
+
+      const embedStartedAt = Date.now();
+      const changedEmbeddings = await this.embedder.embedMany(
+        changedProducts.map((product) => product.search_text),
         this.config.EMBED_BATCH_SIZE
       );
-      await mapLimit(
-        catalogProducts.map((product, index) => ({ product, embedding: embeddings[index] ?? null })),
-        this.config.UPSERT_CONCURRENCY,
-        async ({ product, embedding }) => {
-          await this.db.upsertProduct(product, embedding);
-        }
+      const embeddingByHandle = new Map<string, number[] | null>();
+      changedProducts.forEach((product, index) => {
+        embeddingByHandle.set(product.handle, changedEmbeddings[index] ?? null);
+      });
+      const embedMs = Date.now() - embedStartedAt;
+
+      const upsertStartedAt = Date.now();
+      await this.db.upsertProductsBatch(
+        catalogProducts.map((product) => ({
+          product,
+          embedding: embeddingByHandle.get(product.handle) ?? null
+        })),
+        this.config.UPSERT_BATCH_SIZE
       );
+      const upsertMs = Date.now() - upsertStartedAt;
+      this.logger.info("catalog_indexed_ready", {
+        slug,
+        product_count: catalogProducts.length,
+        changed_products: changedProducts.length
+      });
+      this.logger.info("enrichment_completed", {
+        slug,
+        summarized_products: changedProducts.filter((product) => Boolean(product.summary_llm)).length,
+        embedded_products: changedProducts.length,
+        summary_ms: summaryMs,
+        embed_ms: embedMs
+      });
       this.logger.info("products_upserted", {
         slug,
         ...dedupSummary,
         indexed_record_count: indexedRecords.length,
         catalog_product_count: catalogProducts.length,
         non_product_record_count: nonProductRecords.length,
-        embeddings: this.embedder.isEnabled() ? "enabled" : "disabled"
+        changed_products: changedProducts.length,
+        unchanged_products: Math.max(0, catalogProducts.length - changedProducts.length),
+        embeddings: this.embedder.isEnabled() ? "enabled" : "disabled",
+        summary_llm: this.embedder.canSummarize() ? "enabled" : "disabled",
+        summary_ms: summaryMs,
+        embed_ms: embedMs,
+        upsert_ms: upsertMs
       });
 
       const manifest = catalogProducts
@@ -1145,58 +1305,105 @@ export class IndexerService {
       ? normalizeUrl(`/products/${handle}`, storeUrl)
       : normalizeUrl(asString(product.url) ?? "", storeUrl);
 
+    const optionNodes = Array.isArray(product.options) ? product.options : [];
+    const optionDefinitions: Array<{ name: string; values: Set<string> }> = optionNodes.map((node, index) => {
+      const option = asObject(node);
+      const values = Array.isArray(option?.values)
+        ? option.values
+            .map((value) => asString(value))
+            .filter((value): value is string => value !== undefined)
+        : [];
+      return {
+        name: asString(option?.name) ?? `Option ${index + 1}`,
+        values: new Set(values)
+      };
+    });
+
     const variantNodes = Array.isArray(product.variants) ? product.variants : [];
     const variants = variantNodes
       .map((variant) => asObject(variant))
       .filter((variant): variant is Record<string, unknown> => variant !== null)
-      .map((variant) => ({
-        id: asString(variant.id),
-        title: asString(variant.title),
-        sku: asString(variant.sku),
-        price: asString(variant.price),
-        compare_at_price: asString(variant.compare_at_price),
-        currency: extractVariantCurrency(variant),
-        available: variant.available as boolean | string | undefined,
-        option1: asString(variant.option1),
-        option2: asString(variant.option2),
-        option3: asString(variant.option3)
-      }));
+      .map((variant) => {
+        const optionValues = [asString(variant.option1), asString(variant.option2), asString(variant.option3)];
+        const variantOptions: Record<string, string> = {};
+        optionValues.forEach((value, index) => {
+          if (!value) {
+            return;
+          }
+          while (optionDefinitions.length <= index) {
+            optionDefinitions.push({ name: `Option ${index + 1}`, values: new Set<string>() });
+          }
+          const optionName = optionDefinitions[index].name;
+          optionDefinitions[index].values.add(value);
+          variantOptions[optionName] = value;
+        });
 
-    const availability = variants
-      .map((variant) => variant.available)
-      .some((value) => value === true || asString(value)?.toLowerCase() === "true");
+        return {
+          id: asString(variant.id),
+          title: asString(variant.title),
+          sku: asString(variant.sku),
+          price: asString(variant.price),
+          compare_at_price: asString(variant.compare_at_price),
+          currency: extractVariantCurrency(variant),
+          available: extractShopifyVariantAvailability(variant),
+          option1: optionValues[0],
+          option2: optionValues[1],
+          option3: optionValues[2],
+          options: Object.keys(variantOptions).length > 0 ? variantOptions : undefined
+        };
+      });
 
-    const imageNode = Array.isArray(product.images) ? asObject(product.images[0]) : null;
-    const rawImageUrl = asString(imageNode?.src);
-    const imageUrl = rawImageUrl ? normalizeUrl(rawImageUrl, storeUrl) ?? undefined : undefined;
+    const normalizedOptions = optionDefinitions
+      .map((option) => ({
+        name: option.name,
+        values: dedupeStrings([...option.values])
+      }))
+      .filter((option) => option.values.length > 0);
+
+    const availabilityFlags = variants
+      .map((variant) => asBoolean(variant.available))
+      .filter((value): value is boolean => value !== undefined);
+    const availability = availabilityFlags.length > 0 ? availabilityFlags.some(Boolean) : asBoolean(product.available);
+
+    const imageFromProductImage = normalizeUrl(
+      asString(asObject(product.image)?.src) ?? asString(product.image) ?? "",
+      storeUrl
+    );
+    const imageFromImagesArray = Array.isArray(product.images)
+      ? product.images
+          .map((image) => asObject(image))
+          .filter((image): image is Record<string, unknown> => image !== null)
+          .map((image) => normalizeUrl(asString(image.src) ?? "", storeUrl))
+          .find((url): url is string => typeof url === "string")
+      : null;
+    const imageFromVariant = variantNodes
+      .map((variant) => asObject(variant))
+      .filter((variant): variant is Record<string, unknown> => variant !== null)
+      .map((variant) => asObject(variant.featured_image))
+      .filter((image): image is Record<string, unknown> => image !== null)
+      .map((image) => normalizeUrl(asString(image.src) ?? "", storeUrl))
+      .find((url): url is string => typeof url === "string");
+    const imageUrl = imageFromProductImage ?? imageFromImagesArray ?? imageFromVariant ?? undefined;
+
+    const bodyHtml = asString(product.body_html);
+    const description = toPlainText(bodyHtml);
 
     return {
       id: asString(product.id),
       url: productUrl ?? undefined,
       title: asString(product.title),
       handle,
-      description: asString(product.body_html),
+      description,
       brand: asString(product.vendor),
       vendor: asString(product.vendor),
       product_type: asString(product.product_type),
       image_url: imageUrl,
-      tags: asString(product.tags),
+      tags: parseShopifyTags(product.tags),
       price: variants[0]?.price,
       currency: variants[0]?.currency,
       availability,
       variants,
-      options: Array.isArray(product.options)
-        ? product.options
-            .map((option) => asObject(option))
-            .filter((option): option is Record<string, unknown> => option !== null)
-            .map((option) => ({
-              name: asString(option.name) ?? "",
-              values: Array.isArray(option.values)
-                ? option.values.map((value) => asString(value) ?? "").filter((value) => value.length > 0)
-                : []
-            }))
-            .filter((option) => option.name.length > 0)
-        : undefined,
+      options: normalizedOptions.length > 0 ? normalizedOptions : undefined,
       source: "shopify_json"
     };
   }
@@ -1219,4 +1426,33 @@ function extractVariantCurrency(variant: Record<string, unknown>): string | unde
   const firstPresentment = asObject(asArray(presentmentContainer?.presentment_prices)[0]);
   const priceNode = asObject(firstPresentment?.price);
   return asString(priceNode?.currency_code);
+}
+
+function extractShopifyVariantAvailability(
+  variant: Record<string, unknown>
+): boolean | string | undefined {
+  const direct = asBoolean(variant.available);
+  if (direct !== undefined) {
+    return direct;
+  }
+
+  const inventoryQuantityRaw = variant.inventory_quantity;
+  if (typeof inventoryQuantityRaw === "number" && Number.isFinite(inventoryQuantityRaw)) {
+    return inventoryQuantityRaw > 0;
+  }
+
+  const inventoryQuantityText = asString(inventoryQuantityRaw);
+  if (inventoryQuantityText) {
+    const parsed = Number.parseFloat(inventoryQuantityText);
+    if (Number.isFinite(parsed)) {
+      return parsed > 0;
+    }
+  }
+
+  const inventoryPolicy = asString(variant.inventory_policy)?.toLowerCase();
+  if (inventoryPolicy === "continue") {
+    return true;
+  }
+
+  return undefined;
 }

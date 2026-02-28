@@ -1,0 +1,257 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Inter:wght@400;500;600&display=swap");
+
+.shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, #dfe8db 0%, #f2efec 56%);
+  padding: 1rem;
+  color: #121212;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.frame {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.hero,
+.listSection {
+  border: 1px solid #000;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 0 rgb(0 0 0 / 8%);
+}
+
+.hero {
+  padding: 1.15rem 1.3rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  color: #2a9540;
+  font-weight: 800;
+}
+
+.title {
+  margin: 0.35rem 0 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.45rem, 2.6vw, 2.2rem);
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+.metaRow {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.95rem;
+  font-size: 0.9rem;
+}
+
+.metaRow strong {
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 0.95rem;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 0.55rem 0.82rem;
+  font-size: 0.86rem;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.primaryAction {
+  background: #000;
+  color: #fff;
+}
+
+.primaryAction:hover {
+  background: #2a9540;
+}
+
+.secondaryAction {
+  background: #fff;
+  color: #121212;
+}
+
+.secondaryAction:hover {
+  background: #edf7ec;
+}
+
+.errorBox {
+  margin: 0;
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #ffe5e9;
+  padding: 0.62rem 0.72rem;
+  font-size: 0.9rem;
+}
+
+.listSection {
+  padding: 0.9rem;
+}
+
+.list {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.card {
+  border: 1px solid #000;
+  border-radius: 10px;
+  background: #fefdf9;
+  padding: 0.8rem;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.storeName {
+  margin: 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.storeMeta {
+  margin: 0.3rem 0 0;
+  color: #3f3f3f;
+  font-size: 0.82rem;
+}
+
+.mono {
+  font-family: "SF Mono", "Fira Code", Menlo, monospace;
+}
+
+.urlRow {
+  margin: 0.62rem 0 0;
+  font-size: 0.84rem;
+}
+
+.inlineLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.cardMetrics {
+  margin-top: 0.68rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.84rem;
+}
+
+.cardMetrics strong {
+  font-weight: 600;
+}
+
+.cardActions {
+  margin-top: 0.74rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.cardAction,
+.cardActionAlt {
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 0.4rem 0.62rem;
+  font-size: 0.8rem;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+}
+
+.cardAction {
+  background: #111;
+  color: #fff;
+}
+
+.cardAction:hover {
+  background: #2a9540;
+}
+
+.cardActionAlt {
+  background: #fff;
+  color: #121212;
+}
+
+.cardActionAlt:hover {
+  background: #edf7ec;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #000;
+  border-radius: 999px;
+  padding: 0.14rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pillOk {
+  background: #d7f3db;
+  color: #116d27;
+}
+
+.pillWarn {
+  background: #fff0c7;
+  color: #886200;
+}
+
+.pillError {
+  background: #ffe2e8;
+  color: #a31632;
+}
+
+.pillNeutral {
+  background: #ececec;
+  color: #2c2c2c;
+}
+
+.muted {
+  margin: 0;
+  color: #575757;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 0.7rem;
+  }
+
+  .hero,
+  .listSection {
+    padding: 0.75rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .cardTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,574 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Inter:wght@400;500;600&display=swap");
+
+.shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, #dfe8db 0%, #f2efec 56%);
+  padding: 1rem;
+  color: #121212;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.frame {
+  width: min(1500px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.hero,
+.panel {
+  border: 1px solid #000;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.08);
+}
+
+.hero {
+  padding: 1.2rem 1.3rem;
+}
+
+.heroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  color: #2a9540;
+  font-weight: 800;
+}
+
+.title {
+  margin: 0.45rem 0 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.6rem, 3.3vw, 2.4rem);
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+.backLink {
+  border: 1px solid #000;
+  border-radius: 8px;
+  padding: 0.45rem 0.72rem;
+  font-size: 0.87rem;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  background: #fff;
+  transition: background-color 0.16s ease;
+}
+
+.backLink:hover {
+  background: #f0f5ec;
+}
+
+.metaRow {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.52rem 1rem;
+  font-size: 0.9rem;
+}
+
+.metaRow strong {
+  font-weight: 600;
+}
+
+.inlineLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.v2Controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.v2Field {
+  display: grid;
+  gap: 0.32rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.v2Field input {
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.44rem 0.52rem;
+  font-size: 0.86rem;
+}
+
+.v2Button {
+  align-self: end;
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #1f7f35;
+  color: #fff;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.48rem 0.6rem;
+  cursor: pointer;
+}
+
+.v2Button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.v2Summary {
+  margin: 0.72rem 0 0.22rem;
+  font-size: 0.86rem;
+}
+
+.v2ResultGrid {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.v2Card {
+  border: 1px solid #000;
+  border-radius: 10px;
+  background: #fbf9f3;
+  padding: 0.58rem 0.62rem;
+}
+
+.v2CardTitle {
+  margin: 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 0.86rem;
+}
+
+.v2CardMeta {
+  margin: 0.35rem 0 0;
+  font-size: 0.79rem;
+  color: #333;
+}
+
+.v2CardSignals {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #155123;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.panelHead h2 {
+  margin: 0;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+.rowCount {
+  color: #464646;
+  font-size: 0.88rem;
+}
+
+.errorBox {
+  margin: 0 0 0.75rem;
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #ffe5e9;
+  padding: 0.62rem 0.72rem;
+  font-size: 0.9rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #000;
+  border-radius: 999px;
+  padding: 0.14rem 0.58rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pillOk {
+  background: #d7f3db;
+  color: #116d27;
+}
+
+.pillWarn {
+  background: #fff0c7;
+  color: #886200;
+}
+
+.pillError {
+  background: #ffe2e8;
+  color: #a31632;
+}
+
+.pillNeutral {
+  background: #ececec;
+  color: #2c2c2c;
+}
+
+.metricsGrid,
+.summaryGrid {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.metricsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.summaryGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.metricCard {
+  border: 1px solid #000;
+  border-radius: 10px;
+  background: #fefdf9;
+  padding: 0.62rem 0.68rem;
+}
+
+.metricLabel {
+  margin: 0;
+  font-size: 0.79rem;
+  color: #454545;
+}
+
+.metricValue {
+  margin: 0.2rem 0 0;
+  font-size: 1.04rem;
+  font-weight: 700;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+}
+
+.productsGrid {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tableWrap {
+  border: 1px solid #000;
+  border-radius: 10px;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.colProduct {
+  width: 48%;
+}
+
+.colCategory {
+  width: 12%;
+}
+
+.colPrice {
+  width: 12%;
+}
+
+.colAvailability {
+  width: 12%;
+}
+
+.colVariants {
+  width: 16%;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border-bottom: 1px solid #d8d1c8;
+  padding: 0.58rem 0.62rem;
+  vertical-align: top;
+  font-size: 0.88rem;
+}
+
+.table th {
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #f8f5ef;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.productCell {
+  min-width: 0;
+}
+
+.productMeta {
+  margin: 0.32rem 0 0;
+  font-size: 0.79rem;
+  line-height: 1.25;
+  color: #2f2f2f;
+}
+
+.urlLink {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mono {
+  font-family: "SF Mono", "Fira Code", Menlo, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.variantToggle {
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f5e2c;
+  cursor: pointer;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 0.34rem 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.variantToggle:hover {
+  background: #edf7ec;
+}
+
+.variantToggleActive {
+  background: #e3f2e1;
+}
+
+.variantExpandedRow td {
+  border-bottom: 1px solid #d8d1c8;
+}
+
+.variantExpandedCell {
+  background: #f7f4ee;
+  padding: 0.35rem 0.5rem 0.6rem;
+}
+
+.variantExpandedInner {
+  border: 1px solid #d9d2c7;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.62rem;
+}
+
+.variantExpandedTitle {
+  margin: 0 0 0.58rem;
+  color: #353535;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.variantList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.52rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.variantItem {
+  border: 1px solid #d6d1c8;
+  border-radius: 8px;
+  background: #faf9f5;
+  padding: 0.45rem 0.5rem;
+  display: grid;
+  gap: 0.38rem;
+}
+
+.variantTopRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.variantTopRow strong {
+  font-size: 0.8rem;
+}
+
+.variantPriceWrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.variantCompare {
+  text-decoration: line-through;
+  color: #6d6d6d;
+}
+
+.variantMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem 0.45rem;
+  font-size: 0.75rem;
+  color: #424242;
+}
+
+.variantOptions {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #2d2d2d;
+}
+
+.emptyState {
+  color: #5b5b5b;
+}
+
+.categoryPanel {
+  border: 1px solid #000;
+  border-radius: 10px;
+  padding: 0.72rem;
+  background: #fdfdfd;
+  align-self: start;
+}
+
+.categoryPanel h3 {
+  margin: 0 0 0.55rem;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+}
+
+.categoryList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.categoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid #d7d3c9;
+  border-radius: 8px;
+  background: #faf8f3;
+  padding: 0.45rem 0.55rem;
+}
+
+.categoryName {
+  font-size: 0.86rem;
+  color: #1b1b1b;
+}
+
+.categoryCount {
+  min-width: 1.75rem;
+  text-align: center;
+  border: 1px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.78rem;
+  padding: 0.12rem 0.45rem;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+}
+
+.muted {
+  margin: 0;
+  color: #575757;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 1120px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 0.65rem;
+  }
+
+  .hero,
+  .panel {
+    padding: 0.85rem;
+  }
+
+  .heroTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metricsGrid,
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .v2Controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .colProduct {
+    width: 46%;
+  }
+
+  .colCategory {
+    width: 14%;
+  }
+
+  .colPrice {
+    width: 14%;
+  }
+
+  .colAvailability {
+    width: 12%;
+  }
+
+  .colVariants {
+    width: 14%;
+  }
+}
+
+@media (max-width: 500px) {
+  .metricsGrid,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .v2Controls {
+    grid-template-columns: 1fr;
+  }
+}

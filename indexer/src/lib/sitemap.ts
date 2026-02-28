@@ -7,7 +7,7 @@ interface ParsedSitemap {
   urls: string[];
 }
 
-export interface SitemapCollectionResult {
+interface SitemapCollectionResult {
   urls: string[];
   sitemapUrls: number;
   visitedSitemaps: number;

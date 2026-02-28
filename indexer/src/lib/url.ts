@@ -59,7 +59,7 @@ export function normalizeUrl(input: string, base?: string): string | null {
   return parsed.toString();
 }
 
-export function productUrlScore(candidateUrl: string): number {
+function productUrlScore(candidateUrl: string): number {
   let score = 0;
   let parsed: URL;
 

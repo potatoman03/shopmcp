@@ -42,6 +42,21 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="ShopMCP MCP Server", lifespan=lifespan)
 
 
+def _base_url(request: Request) -> str:
+    return str(request.base_url).rstrip("/")
+
+
+def _mcp_descriptor(request: Request) -> dict[str, Any]:
+    base = _base_url(request)
+    return {
+        "ok": True,
+        "service": "shopmcp-mcp-core",
+        "transport": "sse",
+        "sse_url": f"{base}/mcp/sse",
+        "messages_url": f"{base}/mcp/messages/",
+    }
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {
@@ -49,7 +64,42 @@ async def health() -> dict[str, Any]:
         "service": "shopmcp-mcp-core",
         "db_ready": bool(getattr(app.state, "db_ready", False)),
         "embedder_enabled": embedder.enabled,
+        "mcp_v2_enabled": "search_products_v2" in tool_invokers,
         "db_error": getattr(app.state, "db_error", ""),
+    }
+
+
+@app.get("/")
+async def root(request: Request) -> dict[str, Any]:
+    return _mcp_descriptor(request)
+
+
+@app.get("/mcp")
+async def mcp_root(request: Request) -> dict[str, Any]:
+    return _mcp_descriptor(request)
+
+
+@app.get("/mcp/")
+async def mcp_root_slash(request: Request) -> dict[str, Any]:
+    return _mcp_descriptor(request)
+
+
+@app.get("/.well-known/oauth-protected-resource")
+@app.get("/.well-known/oauth-protected-resource/mcp/sse")
+@app.get("/.well-known/oauth-protected-resource/sse")
+async def oauth_protected_resource(request: Request) -> dict[str, Any]:
+    # No OAuth required for hackathon MVP; advertise the MCP resource directly.
+    return {
+        "resource": f"{_base_url(request)}/mcp/sse",
+        "authorization_servers": [],
+    }
+
+
+@app.get("/.well-known/oauth-authorization-server")
+@app.get("/.well-known/openid-configuration")
+async def oauth_disabled() -> dict[str, Any]:
+    return {
+        "oauth_supported": False,
     }
 
 
@@ -110,6 +160,15 @@ async def invoke_tool_base(tool: str, request: Request) -> dict[str, Any]:
 # Mounting at /mcp yields /mcp/sse and /mcp/messages.
 mcp_sse_app = mcp.http_app(path="/sse", transport="sse")
 app.mount("/mcp", mcp_sse_app)
+
+
+@app.get("/sse")
+async def sse_alias() -> dict[str, Any]:
+    # Keep root-level probe path valid while steering clients to /mcp/sse.
+    return {
+        "resource": "/mcp/sse",
+        "hint": "Use /mcp/sse for SSE transport",
+    }
 
 
 __all__ = ["app", "mcp", "database", "embedder", "tool_invokers"]

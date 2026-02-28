@@ -51,6 +51,10 @@ export function toAvailabilityBoolean(value: unknown): boolean | undefined {
     return value;
   }
 
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value > 0;
+  }
+
   const text = asString(value)?.toLowerCase();
   if (!text) {
     return undefined;
@@ -88,6 +92,136 @@ function parseTags(tags: RawProduct["tags"]): string[] {
     .filter((entry) => entry.length > 0);
 
   return [...new Set(cleaned)];
+}
+
+function dedupeTokens(values: string[]): string[] {
+  const unique = new Set<string>();
+  const ordered: string[] = [];
+  for (const value of values) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized || unique.has(normalized)) {
+      continue;
+    }
+    unique.add(normalized);
+    ordered.push(normalized);
+  }
+  return ordered;
+}
+
+function buildOptionTokens(
+  tags: string[],
+  options: Array<{ name: string; values: string[] }>,
+  variants: NormalizedVariant[],
+  title: string,
+  productType?: string
+): string[] {
+  const tokens: string[] = [];
+  for (const tag of tags) {
+    tokens.push(tag);
+  }
+  for (const option of options) {
+    tokens.push(option.name);
+    for (const value of option.values) {
+      tokens.push(value);
+    }
+  }
+  for (const variant of variants) {
+    if (variant.title) {
+      tokens.push(variant.title);
+    }
+    const optionMap = variant.options ?? {};
+    for (const [name, value] of Object.entries(optionMap)) {
+      tokens.push(name, value);
+    }
+  }
+  tokens.push(title);
+  if (productType) {
+    tokens.push(productType);
+  }
+  return dedupeTokens(tokens);
+}
+
+function isCatalogProductCandidate(
+  normalizedUrl: string,
+  variants: NormalizedVariant[],
+  priceMin?: number,
+  priceMax?: number
+): boolean {
+  const lower = normalizedUrl.toLowerCase();
+  const hasProductPath = lower.includes("/products/") || lower.includes("/product/");
+  const hasVariants = variants.length > 0;
+  const hasPrice = priceMin !== undefined || priceMax !== undefined;
+  return hasProductPath || hasVariants || hasPrice;
+}
+
+function formatPriceCents(priceCents: number): string {
+  return `$${(priceCents / 100).toFixed(2)}`;
+}
+
+function buildDeterministicSummary(
+  title: string,
+  productType: string | undefined,
+  tags: string[],
+  priceMin: number | undefined,
+  priceMax: number | undefined,
+  available: boolean
+): string {
+  const parts: string[] = [];
+  if (productType) {
+    parts.push(`${productType}`);
+  } else {
+    parts.push("Product");
+  }
+  parts.push(available ? "in stock" : "currently unavailable");
+  if (priceMin !== undefined && priceMax !== undefined) {
+    if (priceMin === priceMax) {
+      parts.push(`at ${formatPriceCents(priceMin)}`);
+    } else {
+      parts.push(`from ${formatPriceCents(priceMin)} to ${formatPriceCents(priceMax)}`);
+    }
+  } else if (priceMin !== undefined) {
+    parts.push(`from ${formatPriceCents(priceMin)}`);
+  } else if (priceMax !== undefined) {
+    parts.push(`up to ${formatPriceCents(priceMax)}`);
+  }
+
+  const tagHint = tags.slice(0, 3).join(", ");
+  const base = `${title}: ${parts.join(" ")}`.trim();
+  if (tagHint) {
+    return `${base}. Tags: ${tagHint}.`;
+  }
+  return `${base}.`;
+}
+
+function buildContentHash(input: {
+  title: string;
+  handle: string;
+  url: string;
+  description?: string;
+  productType?: string;
+  tags: string[];
+  priceMin?: number;
+  priceMax?: number;
+  available: boolean;
+  variants: NormalizedVariant[];
+  options: Array<{ name: string; values: string[] }>;
+  optionTokens: string[];
+}): string {
+  const snapshot = JSON.stringify({
+    title: input.title,
+    handle: input.handle,
+    url: input.url,
+    description: input.description ?? "",
+    product_type: input.productType ?? "",
+    tags: input.tags,
+    price_min: input.priceMin ?? null,
+    price_max: input.priceMax ?? null,
+    available: input.available,
+    variants: input.variants,
+    options: input.options,
+    option_tokens: input.optionTokens
+  });
+  return createHash("sha1").update(snapshot).digest("hex");
 }
 
 function titleCase(value: string): string {
@@ -303,6 +437,29 @@ export function normalizeRawProduct(rawInput: RawProduct, storeSlug: string, sto
     ...(asString(raw.etag) ? { etag: asString(raw.etag) } : {}),
     ...(asString(raw.last_modified) ? { last_modified: asString(raw.last_modified) } : {})
   };
+
+  const optionTokens = buildOptionTokens(tags, options, variants, title, productType);
+  const isCatalogProduct = isCatalogProductCandidate(normalizedUrl, variants, priceMin, priceMax);
+  const summaryShort = buildDeterministicSummary(title, productType, tags, priceMin, priceMax, available);
+  const contentHash = buildContentHash({
+    title,
+    handle,
+    url: normalizedUrl,
+    description,
+    productType,
+    tags,
+    priceMin,
+    priceMax,
+    available,
+    variants,
+    options,
+    optionTokens
+  });
+
+  normalized.option_tokens = optionTokens;
+  normalized.is_catalog_product = isCatalogProduct;
+  normalized.summary_short = summaryShort;
+  normalized.content_hash = contentHash;
 
   const compacted = compactOptionalFields(normalized);
   const result = NormalizedProductSchema.safeParse(compacted);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ProductSourceSchema = z.enum(["sitemap", "shopify_json", "html", "exa"]);
+const ProductSourceSchema = z.enum(["sitemap", "shopify_json", "html", "exa"]);
 
 export const RawVariantSchema = z.object({
   id: z.union([z.string(), z.number()]).optional().nullable(),
@@ -74,6 +74,11 @@ export const NormalizedProductSchema = z.object({
   vendor: z.string().optional(),
   product_type: z.string().optional(),
   image_url: z.string().url().optional(),
+  is_catalog_product: z.boolean().optional(),
+  summary_short: z.string().optional(),
+  summary_llm: z.string().optional(),
+  option_tokens: z.array(z.string()).optional(),
+  content_hash: z.string().optional(),
   variants: z.array(NormalizedVariantSchema).optional(),
   options: z
     .array(
@@ -87,7 +92,6 @@ export const NormalizedProductSchema = z.object({
   last_modified: z.string().optional()
 });
 
-export type ProductSource = z.infer<typeof ProductSourceSchema>;
 export type RawVariant = z.infer<typeof RawVariantSchema>;
 export type RawProduct = z.infer<typeof RawProductSchema>;
 export type NormalizedVariant = z.infer<typeof NormalizedVariantSchema>;

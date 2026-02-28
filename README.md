@@ -6,7 +6,7 @@ Sitemap-first catalog indexing + store-scoped MCP tools for agent shopping.
 - `indexer/` (Node + TypeScript, port `3001`): crawl, normalize, embed, and upsert products.
 - `mcp-server/` (FastAPI + FastMCP, port `8000`): serves MCP SSE endpoint and tool invocation.
 - `frontend/` (Next.js, port `3000`): ops dashboard for indexing and tool testing.
-- Postgres + pgvector: shared data store (`stores`, `products`, `crawl_runs`, `crawl_urls`).
+- Postgres + pgvector: shared data store (`stores`, `products`, `crawl_runs`, `crawl_urls`, `baskets`, `basket_items`).
 
 ## Local Prerequisites
 - Docker
@@ -104,9 +104,19 @@ MCP_BASE_URL=http://localhost:8000
 ## MCP Tools
 - `list_stores(limit=25)`
 - `search_products(query, max_results=10, available_only=true, slug?)`
+- `search_products_v2(query, slug?, limit=5, available_only=true, budget_max_cents?, budget_min_cents?, skin_tone?, sort=best_match)` (compact, ranked, payload-capped)
 - `filter_products(product_type?, tags?, min_price?, max_price?, available_only=true, options?, limit=20, slug?)`
 - `get_product(handle, slug?)`
+- `get_product_brief_v2(handle, slug?)` (compact detail without full variants array)
 - `check_variant_availability(handle, options, slug?)`
+- `add_to_basket(handle, quantity=1, options?, variant_id?, basket_id?, slug?)`
+- `get_basket(basket_id, slug?)`
+- `update_basket_item(basket_id, variant_id, quantity, slug?)`
+- `remove_from_basket(basket_id, variant_id, slug?)`
+- `clear_basket(basket_id, slug?)`
+- `create_checkout_intent(basket_id, slug?, mark_checked_out=false)` (returns manual checkout link)
+- `get_checkout_link(basket_id, slug?)` (alias)
+- `checkout_items(items, slug?, basket_id?, mark_checked_out=false)` (single call add+checkout)
 - `list_categories(slug?)`
 
 If `slug` is omitted, MCP will auto-route to a best-fit indexed store when possible.
@@ -116,6 +126,19 @@ Response invariants:
 - availability fields are booleans
 - optional null fields are omitted
 - lists are arrays, not null
+
+V2 controls:
+- `MCP_V2_ENABLED=true|false`
+- `MCP_SEARCH_CACHE_SIZE` / `MCP_SEARCH_CACHE_TTL_SEC`
+- `MCP_EMBED_QUERY_CACHE_SIZE` / `MCP_EMBED_QUERY_CACHE_TTL_SEC`
+
+Indexer v2 schema + throughput controls:
+- apply `indexer/migrations/002_context_safe_v2.sql`
+- basket + checkout persistence: `indexer/migrations/003_basket_checkout.sql`
+- optional one-time metadata backfill for existing rows: `./scripts/backfill_product_metadata.sh`
+- `UPSERT_BATCH_SIZE`
+- `CRAWL_URL_UPSERT_BATCH_SIZE`
+- optional summary precompute: `SUMMARY_LLM_ENABLED=true`, `SUMMARY_LLM_MODEL`, `SUMMARY_LLM_MAX_CHARS`
 
 ## Demo Assets
 - [demo/claude_desktop_config.local.json](/Users/aevo/Documents/shopmcp/demo/claude_desktop_config.local.json)

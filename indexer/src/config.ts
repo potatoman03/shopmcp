@@ -28,6 +28,11 @@ const EnvSchema = z.object({
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   EMBED_BATCH_SIZE: z.coerce.number().int().positive().default(64),
   UPSERT_CONCURRENCY: z.coerce.number().int().positive().default(12),
+  UPSERT_BATCH_SIZE: z.coerce.number().int().positive().default(200),
+  CRAWL_URL_UPSERT_BATCH_SIZE: z.coerce.number().int().positive().default(500),
+  SUMMARY_LLM_ENABLED: z.coerce.boolean().default(false),
+  SUMMARY_LLM_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  SUMMARY_LLM_MAX_CHARS: z.coerce.number().int().positive().default(220),
   USER_AGENT: z.string().min(1).default("ShopMCPIndexer/0.1 (+https://shopmcp.local)"),
   LOG_LEVEL: z.string().min(1).default("info")
 });

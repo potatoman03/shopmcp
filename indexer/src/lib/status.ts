@@ -54,7 +54,7 @@ export class StatusRegistry {
       metrics: zeroMetrics(),
       indexed_products: 0,
       product_count: 0,
-      endpoint: `http://localhost:8000/mcp/${slug}/sse`
+      endpoint: "http://localhost:8000/mcp/sse"
     };
 
     this.statuses.set(slug, status);

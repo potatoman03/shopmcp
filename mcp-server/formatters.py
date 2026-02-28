@@ -80,6 +80,15 @@ def _to_bool(value: Any) -> bool:
     return bool(value)
 
 
+def _is_availability_key(key: str) -> bool:
+    key_lower = key.lower()
+    return (
+        key_lower in {"available", "availability"}
+        or key_lower.endswith("_available")
+        or key_lower.endswith("_availability")
+    )
+
+
 def _to_plain(value: Any) -> Any:
     if value is None:
         return None
@@ -120,7 +129,7 @@ def _normalize(value: Any, key: str | None, array_keys: set[str]) -> Any:
         lowered_key = key.lower()
         if "price" in lowered_key:
             value = _price_to_cents(value, key)
-        if "available" in lowered_key or "availability" in lowered_key:
+        if _is_availability_key(lowered_key):
             value = _to_bool(value)
 
     if isinstance(value, Mapping):

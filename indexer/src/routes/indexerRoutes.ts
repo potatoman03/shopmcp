@@ -26,6 +26,11 @@ const productsQuerySchema = z.object({
   view: z.enum(["summary", "manifest"]).default("summary")
 });
 
+const storesQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(1000).default(200),
+  offset: z.coerce.number().int().nonnegative().default(0)
+});
+
 function stripHtml(input: string): string {
   const noTags = input.replace(/<[^>]+>/g, " ");
   const decoded = noTags
@@ -46,6 +51,47 @@ export function createIndexerRouter(indexer: IndexerService): Router {
     const health = await indexer.health();
     logger.debug("health_requested", health);
     response.status(health.ok ? 200 : 503).json({ ...health, timestamp: new Date().toISOString() });
+  });
+
+  router.get("/stores", async (request, response) => {
+    const parsed = storesQuerySchema.safeParse(request.query ?? {});
+    if (!parsed.success) {
+      logger.warn("stores_request_invalid", { errors: parsed.error.flatten() });
+      response.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+
+    const listed = await indexer.listStores(parsed.data.limit, parsed.data.offset);
+    const output = listed.stores.map((store) => ({
+      slug: store.slug,
+      store_name: store.store_name,
+      url: store.store_url,
+      platform: store.platform,
+      status: store.status,
+      product_count: store.product_count,
+      indexed_at: store.indexed_at,
+      created_at: store.created_at,
+      updated_at: store.updated_at,
+      run_started_at: store.run_started_at,
+      run_finished_at: store.run_finished_at,
+      metrics: store.metrics,
+      error: store.last_error,
+      endpoint: `http://localhost:8000/mcp/${store.slug}/sse`
+    }));
+
+    logger.info("stores_listed", {
+      total: listed.total,
+      returned: output.length,
+      limit: parsed.data.limit,
+      offset: parsed.data.offset
+    });
+    response.json({
+      total: listed.total,
+      returned: output.length,
+      limit: parsed.data.limit,
+      offset: parsed.data.offset,
+      stores: output
+    });
   });
 
   router.post("/index", async (request, response) => {
@@ -197,6 +243,7 @@ export function createIndexerRouter(indexer: IndexerService): Router {
         ...(product.price_max !== undefined ? { price_max: product.price_max } : {}),
         available: product.available,
         variant_count: product.variant_count,
+        ...(product.variants && product.variants.length > 0 ? { variants: product.variants } : {}),
         source: product.source,
         exa_matched: product.exa_matched,
         ...(product.description ? { description: stripHtml(product.description) } : {}),
