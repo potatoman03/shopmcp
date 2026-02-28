@@ -183,10 +183,6 @@ Indexer v2 schema + throughput controls:
 - [demo/curl_examples.sh](/Users/aevo/Documents/shopmcp/demo/curl_examples.sh)
 - [demo/test_plan.md](/Users/aevo/Documents/shopmcp/demo/test_plan.md)
 
-Recommended demo stores (validated 2026-02-28):
-- `https://www.allbirds.com`
-- `https://namimatcha.com`
-- backup: `https://www.tentree.com`
 
 ## Currently Indexed Stores (Snapshot: 2026-02-28 16:54:23 +08 / 2026-02-28 08:54:23 UTC)
 | Slug | Store | URL | Products | Status | Indexed At (UTC) |
