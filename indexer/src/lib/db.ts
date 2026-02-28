@@ -423,7 +423,7 @@ export class Database {
       const titles = batch.map((item) => item.product.title);
       const productTypes = batch.map((item) => item.product.product_type ?? null);
       const vendors = batch.map((item) => item.product.vendor ?? item.product.brand ?? null);
-      const tags = batch.map((item) => item.product.tags);
+      const tagsJson = batch.map((item) => JSON.stringify(item.product.tags ?? []));
       const priceMins = batch.map((item) => item.product.price_min ?? null);
       const priceMaxes = batch.map((item) => item.product.price_max ?? null);
       const availableFlags = batch.map((item) => item.product.available);
@@ -439,7 +439,7 @@ export class Database {
       const catalogFlags = batch.map((item) => item.product.is_catalog_product ?? true);
       const summaryShort = batch.map((item) => item.product.summary_short ?? null);
       const summaryLlm = batch.map((item) => item.product.summary_llm ?? null);
-      const optionTokens = batch.map((item) => item.product.option_tokens ?? []);
+      const optionTokensJson = batch.map((item) => JSON.stringify(item.product.option_tokens ?? []));
       const contentHashes = batch.map((item) => item.product.content_hash ?? null);
 
       await this.pool.query(
@@ -476,7 +476,11 @@ export class Database {
           input.title,
           input.product_type,
           input.vendor,
-          input.tags,
+          case
+            when input.tags_json is null then '{}'::text[]
+            when jsonb_typeof(input.tags_json::jsonb) <> 'array' then '{}'::text[]
+            else coalesce(array(select jsonb_array_elements_text(input.tags_json::jsonb)), '{}'::text[])
+          end as tags,
           input.price_min,
           input.price_max,
           input.available,
@@ -493,7 +497,11 @@ export class Database {
           input.is_catalog_product,
           input.summary_short,
           input.summary_llm,
-          input.option_tokens,
+          case
+            when input.option_tokens_json is null then '{}'::text[]
+            when jsonb_typeof(input.option_tokens_json::jsonb) <> 'array' then '{}'::text[]
+            else coalesce(array(select jsonb_array_elements_text(input.option_tokens_json::jsonb)), '{}'::text[])
+          end as option_tokens,
           input.content_hash,
           now()
         from unnest(
@@ -503,7 +511,7 @@ export class Database {
           $4::text[],
           $5::text[],
           $6::text[],
-          $7::text[][],
+          $7::text[],
           $8::int[],
           $9::int[],
           $10::boolean[],
@@ -517,7 +525,7 @@ export class Database {
           $18::boolean[],
           $19::text[],
           $20::text[],
-          $21::text[][],
+          $21::text[],
           $22::text[]
         ) as input(
           store_slug,
@@ -526,7 +534,7 @@ export class Database {
           title,
           product_type,
           vendor,
-          tags,
+          tags_json,
           price_min,
           price_max,
           available,
@@ -540,7 +548,7 @@ export class Database {
           is_catalog_product,
           summary_short,
           summary_llm,
-          option_tokens,
+          option_tokens_json,
           content_hash
         )
         on conflict (store_slug, handle) do update set
@@ -582,7 +590,7 @@ export class Database {
           titles,
           productTypes,
           vendors,
-          tags,
+          tagsJson,
           priceMins,
           priceMaxes,
           availableFlags,
@@ -596,7 +604,7 @@ export class Database {
           catalogFlags,
           summaryShort,
           summaryLlm,
-          optionTokens,
+          optionTokensJson,
           contentHashes
         ]
       );
